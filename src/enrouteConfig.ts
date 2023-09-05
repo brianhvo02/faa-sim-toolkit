@@ -1,4 +1,4 @@
-export const baseEnrouteURL = 'https://cdn.statically.io/gh/brianhvo02/faa_digital_products/main/enroute';
+export const baseCDNURL = 'https://faa-digital-products.brianhuyvo.com';
 
 export const enrouteProducts = [
     'ENR_L01', 'ENR_L02', 'ENR_L03', 'ENR_L04', 'ENR_L05',

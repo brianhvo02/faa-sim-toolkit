@@ -1,23 +1,51 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import dgram from 'node:dgram';
 import localtunnel from 'localtunnel';
+import { createServer } from 'node:http';
 
+const TUNNEL = process.env.TUNNEL;
 const HOST = process.env.NODE_ENV === 'production'
     ? (process.env.HOST ?? '???')
     : 'http://localhost:3000';
 const WS_PORT = process.env.WS_PORT ?? 5000;
 const XP_PORT = process.env.XP_PORT ?? 49002;
 
-const wss = new WebSocketServer({ port: WS_PORT });
+const server = createServer((req, res) => {
+    if (!req.url.includes('V7pMh4xRihflnr61'))
+        return res.end();
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'image/jpeg');
+    const parts = req.url.split('/');
+    const max = parts[2] === '301' ? 23 : parts[2] === '302' ? 22 : 20;
+    parts[4] = parts[4] === '1' ? max - 2 : (max - parts[4] * 2);
+    fetch('https://t.skyvector.com' + parts.join('/'))
+        .then(res => res.arrayBuffer())
+        .then(data => res.end(Buffer.from(data)))
+        .catch(e => {
+            console.error(e);
+            res.end();
+        });
+});
 
-localtunnel({ port: WS_PORT })
-    .then(tunnel => console.log(`${HOST}?wsUrl=${tunnel.url.replace('https://', '')}`));
+const wss = new WebSocketServer({ server });
 
-const server = dgram.createSocket('udp4');
+server.listen(WS_PORT, () => {
+    console.log('proxy server started on', WS_PORT);
+    if (TUNNEL) {
+        localtunnel({ port: WS_PORT })
+            .then(tunnel => console.log(`${HOST}?proxy=${tunnel.url}`));
+    } else {
+        console.log(`${HOST}?proxy=http://localhost:5000`)
+    }
+});
 
-server.on('error', (err) => {
+
+
+const socket = dgram.createSocket('udp4');
+
+socket.on('error', (err) => {
     console.error(`server error:\n${err.stack}`);
-    server.close();
+    socket.close();
 });
 
 const xgpsKeys = [
@@ -42,7 +70,7 @@ const zip = (data, keys) => data.reduce((obj, field, i) => {
     return obj;
 }, {});
 
-server.on('message', msg => {
+socket.on('message', msg => {
     const header = msg.subarray(0, 4).toString('utf-8');
     const data = msg.subarray(6, -1).toString('utf-8').split(',');
     const payload = { header };
@@ -58,7 +86,6 @@ server.on('message', msg => {
             client.send(JSON.stringify(payload));
         }
     })
-    // console.log(payload)
 });
 
-server.bind(XP_PORT);
+socket.bind(XP_PORT);
