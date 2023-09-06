@@ -1,1 +1,0 @@
-export const checkId = (id: string | number | undefined): id is string => typeof id === 'string';

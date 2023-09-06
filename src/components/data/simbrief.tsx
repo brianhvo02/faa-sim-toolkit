@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { handleSubmit } from '../util';
 
-interface Briefing {
+export interface Briefing {
     general: {
         release: string;
         icao_airline: string;
@@ -129,20 +131,38 @@ interface NOTAM {
 }
 
 export const useSimbrief = () => {
-    const [simbriefUsername, setSimbriefUsername] = useState<string>();
+    const [params] = useSearchParams();
     const [briefing, setBriefing] = useState<Briefing>();
+    const username = useMemo(() => params.get('simbriefUsername'), [params]);
     
     useEffect(() => {
-        if (simbriefUsername) {
+        if (username) {
             const controller = new AbortController();
-            fetch(`https://www.simbrief.com/api/xml.fetcher.php?username=${simbriefUsername}&json=1`, { signal: controller.signal })
+            fetch(`https://www.simbrief.com/api/xml.fetcher.php?username=${username}&json=1`, { signal: controller.signal })
                 .then(res => res.json())
                 .then(setBriefing)
                 .catch(console.error);
     
             return () => controller.abort();
         }
-    }, [simbriefUsername]);
+    }, [username]);
     
-    return { briefing, setSimbriefUsername };
+    return { briefing };
 }
+
+export const SimbriefForm = () => {
+    const [params, setParams] = useSearchParams();
+    const [simbriefUsername, setUsername] = useState(params.get('simbriefUsername') ?? '');
+
+    return (
+        <form onSubmit= {handleSubmit(() => setParams({ ...Object.fromEntries(params), simbriefUsername }))}>
+            <input
+                type='text'
+                value={simbriefUsername}
+                onChange={e => setUsername(e.target.value)}
+                placeholder='Enter Simbrief username'
+            />
+            <button>Get briefing</button>
+        </form>
+    );
+};

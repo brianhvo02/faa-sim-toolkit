@@ -1,7 +1,6 @@
 {
   "dependencies": {
     "localtunnel": "^2.0.2",
-    "tunnelmole": "^2.1.12",
     "ws": "^8.13.0"
   }
 }

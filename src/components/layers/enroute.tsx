@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { baseCDNURL, enrouteProducts } from '../../enrouteConfig'
-import { RasterLayer, Source, Layer, RasterSource } from 'react-map-gl';
+import type { RasterSource, RasterLayer } from 'mapbox-gl';
+import { useState, useEffect } from 'react';
+import { Source, Layer } from 'react-map-gl';
+import { enrouteProducts, baseCDNURL } from '../../enrouteConfig';
 
 const extractData = (data: string, attr: string, last = false) => {
     const idx = (last ? data.lastIndexOf : data.indexOf).apply(data, [attr]) + attr.length + 2;
@@ -20,6 +21,7 @@ export const useEnrouteProducts = (proxy: string | null) => {
     const [enrouteData, setEnrouteData] = useState<EnrouteData[]>([]);
     const [enrouteLayers, setEnrouteLayers] = useState<JSX.Element[]>([]);
     const [currentLayer, setCurrentLayer] = useState('');
+    const [currentBasemap, setCurrentBasemap] = useState('light-v11');
 
     useEffect(() => {
         Promise.all<Promise<EnrouteData>[]>(
@@ -127,12 +129,36 @@ export const useEnrouteProducts = (proxy: string | null) => {
 
             setEnrouteLayers(layers);
         }
-    }, [currentLayer, enrouteData, transparent])
+    }, [currentLayer, enrouteData, transparent]);
 
-    return { 
-        enrouteLayers, enrouteData, 
-        currentLayer, setCurrentLayer,
-        transparent, setTransparent
-    };
+    const LayerSelector = () => (
+        <div>
+            <label>Chart Layer
+                <select 
+                    value={currentLayer} 
+                    onChange={e => setCurrentLayer(e.target.value) }
+                >
+                    <option value=''>None</option>
+                    {
+                        enrouteData.map(({ layer }) => (
+                            <option key={layer.id} value={layer.id}>{layer.id.replace('_layer', '')}</option>
+                        ))
+                    }
+                </select>
+            </label>
+            {
+                !!currentLayer.length &&
+                <label>
+                    <input 
+                        type='checkbox' 
+                        onChange={e => setTransparent(e.currentTarget.checked)}
+                        checked={transparent}
+                    />
+                    Transparent
+                </label>
+            }
+        </div>
+    );
+
+    return { enrouteLayers, currentLayer, currentBasemap, setCurrentBasemap, LayerSelector };
 }
-

@@ -1,6 +1,6 @@
-import { Feature, LineString, MultiPoint, Point } from 'geojson';
+import type { Feature, LineString, MultiPoint, Point } from 'geojson';
 import { useEffect, useMemo, useState } from 'react';
-import { baseCDNURL } from '../../../enrouteConfig';
+import { baseCDNURL } from '../../enrouteConfig';
 
 export type MapFeature = Feature<Point | MultiPoint | LineString, any>;
 
