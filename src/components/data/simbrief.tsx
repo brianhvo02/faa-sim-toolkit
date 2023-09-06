@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { handleSubmit } from '../util';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBan } from '@fortawesome/free-solid-svg-icons';
 
 export interface Briefing {
     general: {
@@ -144,25 +146,43 @@ export const useSimbrief = () => {
                 .catch(console.error);
     
             return () => controller.abort();
+        } else {
+            setBriefing(undefined);
         }
     }, [username]);
     
     return { briefing };
 }
 
-export const SimbriefForm = () => {
+export const SimbriefForm = ({ currentBasemap }: { currentBasemap: string; }) => {
     const [params, setParams] = useSearchParams();
     const [simbriefUsername, setUsername] = useState(params.get('simbriefUsername') ?? '');
 
     return (
-        <form onSubmit= {handleSubmit(() => setParams({ ...Object.fromEntries(params), simbriefUsername }))}>
-            <input
-                type='text'
-                value={simbriefUsername}
-                onChange={e => setUsername(e.target.value)}
-                placeholder='Enter Simbrief username'
+        <div className='simbrief-form'>
+            <form onSubmit= {handleSubmit(() => setParams({ ...Object.fromEntries(params), simbriefUsername }))}>
+                <input
+                    type='text'
+                    value={simbriefUsername}
+                    onChange={e => setUsername(e.target.value)}
+                    placeholder='Enter Simbrief username'
+                />
+                <button>Get briefing</button>
+            </form>
+            <FontAwesomeIcon 
+                icon={faBan} 
+                style={{
+                    color: currentBasemap === 'light-v11'
+                            ? '#292929'
+                            : '#FCFCFD'
+                }}
+                onClick={() => {
+                    const newParams = { ...Object.fromEntries(params) };
+                    delete newParams['simbriefUsername'];
+                    setUsername('');
+                    setParams(newParams);
+                }}
             />
-            <button>Get briefing</button>
-        </form>
+        </div>
     );
 };

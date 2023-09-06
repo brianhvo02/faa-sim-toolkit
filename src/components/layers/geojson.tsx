@@ -1,9 +1,11 @@
 import { GeoJsonLayer } from '@deck.gl/layers/typed';
 import type { Feature, Point, Position } from 'geojson';
-import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, useEffect, useMemo, useState, type SetStateAction, type Dispatch } from 'react';
 import { type MapFeature, useMapData } from '../data/map';
 import type { Briefing } from '../data/simbrief';
 import { checkId } from '../util';
+import { faChevronCircleDown, faChevronCircleUp, faPlaneArrival } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 const cifpProducts: Record<string, string> = {
     vhf_navaids: 'VHF Navaids',
@@ -43,36 +45,25 @@ const findFeatures = (results: Set<MapFeature>, allFeatures: MapFeature[], waypo
 interface UseFeatureLayerProps {
     currentBasemap: string;
     currentLayer: string;
+    approach: string;
+    setApproach: Dispatch<SetStateAction<string>>;
     briefing?: Briefing;
 }
 
-export const useFeatureLayer = ({ currentBasemap, currentLayer, briefing }: UseFeatureLayerProps) => {
+export const useFeatureLayer = ({ 
+    briefing,
+    currentBasemap, currentLayer, 
+    approach, setApproach
+}: UseFeatureLayerProps) => {
     const featureColor: [number, number, number] = useMemo(() => currentBasemap !== 'light-v11' && !currentLayer.length ? [252, 252, 253] : [41, 41, 41], [currentBasemap, currentLayer]);
     const [selectedFeatures, setSelectedFeatures] = useState<Record<string, boolean>>(featuresMap);
     const { features, allFeatures } = useMapData(selectedFeatures);
-
-    const [approach, setApproach] = useState('');
-    const approaches = useMemo(() => {
-        if (briefing && allFeatures) {
-            return allFeatures.reduce((dict: Record<string, string>, feature) => {
-                if (
-                    checkId(feature.id) 
-                        && 
-                    feature.id.match(
-                        RegExp(String.raw`${briefing.destination.icao_code}_\w${briefing.destination.plan_rwy}`)
-                    )
-                ) dict[feature.id] = feature.id.replace(`${briefing.destination.icao_code}_`, '').replace('_', ' - ');
-
-                return dict;
-            }, {});
-        }
-    }, [briefing, allFeatures]);
 
     useEffect(() => {
         return () => {
             setApproach('');
         };
-    }, []);
+    }, [setApproach]);
 
     const [showText, setShowText] = useState(true);
     const handleSelectFeature = (e: ChangeEvent<HTMLInputElement>) => {
@@ -205,33 +196,96 @@ export const useFeatureLayer = ({ currentBasemap, currentLayer, briefing }: UseF
         </label>
     );
 
-    
-    /* <label>
-        <input 
-            type='checkbox' 
-            onChange={e => setShowText(e.currentTarget.checked)}
-            checked={showText}
-        />
-        Show Text
-    </label> */
+    return { 
+        featureLayer, allFeatures,
+        showText, setShowText, 
+        FeatureSelection, ApproachSelect 
+    };
+}
 
-    const ApproachSelection = () => briefing ?
-    <>
-        <p>{briefing.origin.icao_code}/{briefing.origin.plan_rwy} {briefing.general.route} {briefing.destination.icao_code}/{briefing.destination.plan_rwy}</p>
-        {
-            approaches &&
-            <label>Approach
-                <select onChange={e => setApproach(e.target.value)} value={approach}>
-                    <option value='' />
-                    {
-                        Object.keys(approaches).map(id => 
-                            <option key={id} value={id}>{approaches[id]}</option>
-                        )
-                    }
-                </select>
-            </label>
+interface ApproachSelectProps {
+    currentBasemap: string;
+    briefing: Briefing;
+    allFeatures?: MapFeature[];
+    approach: string;
+    setApproach: Dispatch<SetStateAction<string>>;
+}
+
+const ApproachSelect = ({
+    currentBasemap, briefing, allFeatures,
+    approach, setApproach
+}: ApproachSelectProps) => {
+    const approaches = useMemo(() => {
+        if (briefing && allFeatures) {
+            return allFeatures.reduce((dict: Record<string, string>, feature) => {
+                if (
+                    checkId(feature.id) 
+                        && 
+                    feature.id.match(
+                        RegExp(String.raw`${briefing.destination.icao_code}_\w${briefing.destination.plan_rwy}`)
+                    )
+                ) dict[feature.id] = feature.id.replace(`${briefing.destination.icao_code}_`, '').replace('_', ' - ');
+
+                return dict;
+            }, {});
         }
-    </> : null;
+    }, [briefing, allFeatures]);
+    const handleOptionClick = (e: ChangeEvent<HTMLInputElement>) =>
+        setApproach(e.target.value);
+    const [showLayerSelect, setShowLayerSelect] = useState(false);
+    if (!briefing || !approaches) return null;
 
-    return { featureLayer, FeatureSelection, ApproachSelection };
+    return (
+        <div 
+            className='approach-select'
+            style={{
+                transform: `translate(-50%, ${
+                    showLayerSelect
+                        ? '7rem'
+                        : 'calc(2rem - 100%)'
+                })`
+            }}
+        >
+            <fieldset className='features approaches'>
+                <label>
+                    <input 
+                        type='radio' 
+                        value=''
+                        onChange={handleOptionClick}
+                        checked={approach === ''}
+                    />
+                    <span>None</span>
+                </label>
+                {
+                    Object.keys(approaches).map(id => (
+                        <label key={id}>
+                            <input 
+                                type='radio' 
+                                value={id} 
+                                onChange={handleOptionClick}
+                                checked={approach === id}
+                            />
+                            <span>{id}</span>
+                        </label>
+                    ))
+                }
+            </fieldset>
+            <div
+                className='approach-toggle'
+                onClick={() => setShowLayerSelect(prev => !prev)}
+                style={{
+                    color: currentBasemap === 'light-v11'
+                        ? '#292929'
+                        : '#FCFCFD'
+                }}
+            >
+                <FontAwesomeIcon icon={faPlaneArrival} />
+                {
+                    showLayerSelect
+                        ? <FontAwesomeIcon icon={faChevronCircleUp} />
+                        : <FontAwesomeIcon icon={faChevronCircleDown} />
+                }
+            </div>
+        </div>
+    );
 }
