@@ -5,6 +5,7 @@
     "bin": "index.lib.js",
     "dependencies": {
         "localtunnel": "^2.0.2",
+        "pkg": "^5.8.1",
         "ws": "^8.13.0"
     },
     "devDependencies": {
