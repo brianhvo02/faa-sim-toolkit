@@ -21,13 +21,9 @@ jobs:
         npm run build
         npm run package
         echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: build
-        path: plugin/dist
     - name: Create release
       uses: ncipollo/release-action@v1
       with:
-        artifacts: build/*
+        artifacts: dist/*
+        artifactErrorsFailBuild: true
         tag: ${{ env.PACKAGE_VERSION }}
