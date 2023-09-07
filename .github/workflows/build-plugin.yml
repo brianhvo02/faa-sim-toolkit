@@ -15,9 +15,9 @@ jobs:
       with:
         sparse-checkout: |
           plugin
-        path: .
     - name: Build plugin
       run: |
+        cd plugin
         npm install
         npm run build
         npm run package
