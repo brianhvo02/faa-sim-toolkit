@@ -4,7 +4,6 @@ on:
   push:
     paths:
       - 'src/**'
-      - 'public/**'
   workflow_dispatch:
 
 jobs:
@@ -13,6 +12,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build application
+      env:
+        REACT_APP_MAPBOX_ACCESS_TOKEN: ${{ secrets.REACT_APP_MAPBOX_ACCESS_TOKEN }}
       run: |
         npm install
         npm run build
@@ -21,7 +22,7 @@ jobs:
         tar \
         --dereference --hard-dereference \
         --directory "build" \
-        -cvf "$RUNNER_TEMP\artifact.tar" \
+        -cvf "artifact.tar" \
         --exclude=.git \
         --exclude=.github \
         --force-local \
@@ -30,7 +31,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: build
-        path: ${{ runner.temp }}/artifact.tar
+        path: artifact.tar
         if-no-files-found: error
   deploy:
     needs: build
