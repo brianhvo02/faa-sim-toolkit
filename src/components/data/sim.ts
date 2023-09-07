@@ -1,58 +1,40 @@
-export interface XData {
-    header: 'XGPS' | 'XATT' | 'XTRA';
-    data: XGPSData | XATTData | XTRAData;
+export interface SimData<T, D> {
+    type: T;
+    data: D;
 }
 
-export const isXGPS = (payload: XData): payload is XGPS => payload.header === 'XGPS';
-export const isXATT = (payload: XData): payload is XATT => payload.header === 'XATT';
-export const isXTRA = (payload: XData): payload is XTRA => payload.header === 'XTRA';
+export type SimPayload = SimData<'position' | 'radar', PositionData | RadarData>;
+export type PositionPayload = SimData<'position', PositionData>;
+export type RadarPayload = SimData<'radar', RadarData>;
 
-export interface XGPS {
-    header: 'XGPS';
-    data: XGPSData;
-}
+export const isPositionData = (payload: SimPayload): payload is PositionPayload => 
+    payload.type === 'position';
 
-export interface XATT {
-    header: 'XATT';
-    data: XATTData;
-}
+export const isRadarData = (payload: SimPayload): payload is RadarPayload => 
+    payload.type === 'radar';
 
-export interface XTRA {
-    header: 'XTRA';
-    data: XTRAData;
-}
-
-export interface XGPSData {
+export interface PositionData {
     longitude: number;
     latitude: number;
-    elevation: number;
-    bearing: number;
-    speed: number;
-}
-
-export interface XATTData {
-    yaw: number;
+    altitudeMSL: number;
+    altitudeAGL: number;
     pitch: number;
+    yaw: number;
     roll: number;
+    speed: number;
+    vx: number;
+    vy: number;
+    vz: number;
     p: number;
     q: number;
     r: number;
-    speed_east: number;
-    speed_up: number;
-    speed_south: number;
-    gload_side: number;
-    gload_normal: number;
-    gload_axial: number;
 }
 
-export interface XTRAData {
-    index: number;
-    latitude: number;
+export interface RadarData {
     longitude: number;
-    elevation: number;
-    vertical_speed: number;
-    ground: number;
-    heading: number;
-    speed: number;
-    tail_number: number;
+    latitude: number;
+    bases: number;
+    tops: number;
+    clouds: number;
+    precip: number;
 }

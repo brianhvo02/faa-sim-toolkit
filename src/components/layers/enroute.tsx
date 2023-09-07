@@ -84,6 +84,8 @@ export const useEnrouteProducts = ({ proxy, viewState, mapRef }: UseEnrouteProdu
                 return { source, layer };
             })
         ).then(setEnrouteData).then(() => setFetchedData(true));
+
+        return () => setEnrouteData([]);
     }, []);
     
     useEffect(() => {

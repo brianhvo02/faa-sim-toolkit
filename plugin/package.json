@@ -1,8 +1,8 @@
 {
     "name": "plugin",
     "version": "0.1.0",
-    "main": "index.lib.js",
-    "bin": "index.lib.js",
+    "main": "lib.js",
+    "bin": "lib.js",
     "dependencies": {
         "localtunnel": "^2.0.2",
         "pkg": "^5.8.1",
@@ -14,7 +14,8 @@
         "@babel/preset-env": "^7.22.15"
     },
     "scripts": {
-        "build": "babel index.js --out-file index.lib.js --minified --presets=@babel/env",
+        "build": "babel index.js --out-file lib.js --minified --presets=@babel/env",
+        "start": "npm run build && node lib.js",
         "package": "pkg --out-path dist -t node18-linux-x64,node18-macos-x64,node18-win-x64 ."
     },
     "license": "ISC"

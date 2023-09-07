@@ -6,6 +6,15 @@
     left: 0;
     z-index: 0;
 
+    .vatsim-connect {
+        position: absolute;
+        
+        svg {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+    }
+
     .route-text {
         position: absolute;
         z-index: 5;

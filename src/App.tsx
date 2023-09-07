@@ -1,11 +1,11 @@
-import { FullscreenControl, Layer, Map, NavigationControl } from 'react-map-gl';
+import { FullscreenControl, Layer, Map, NavigationControl, Source } from 'react-map-gl';
 import type { MapRef } from 'react-map-gl';
 import { DeckGLOverlay, skyLayer } from './components/layers';
 import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useIPLocation } from './components/data/location';
 import { SimbriefForm, useSimbrief } from './components/data/simbrief';
-import { faCog, faLayerGroup, faMap } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faLayerGroup, faLink, faMap, faTowerCell } from '@fortawesome/free-solid-svg-icons';
 import { useEnrouteProducts } from './components/layers/enroute';
 import { useFeatureLayer } from './components/layers/geojson';
 import { usePlaneLayer } from './components/layers/plane';
@@ -13,6 +13,8 @@ import { handleSubmit } from './components/util';
 import SelectList from './components/SelectList';
 import './App.scss';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { useVatsimLayer } from './components/layers/vatsim';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 const App = () => {
     const [params, setParams] = useSearchParams();
@@ -43,7 +45,8 @@ const App = () => {
         currentBasemap, currentLayer,
         approach, setApproach
     });
-    const { planeLayer, GoToPlaneButton } = usePlaneLayer();
+    const { planeLayer, planeData } = usePlaneLayer();
+    const { vatsimLayer, skipToken, setSkipToken } = useVatsimLayer(showText);
 
     return (
         <div className='map'>
@@ -63,6 +66,22 @@ const App = () => {
                 </>
             }
             {
+                <div 
+                    className='vatsim-connect'
+                    style={{
+                        color: currentBasemap === 'light-v11'
+                            ? '#292929'
+                            : '#FCFCFD'
+                    }}
+                >
+                    {
+                        skipToken
+                            ? <FontAwesomeIcon icon={faTowerCell} />
+                            : <FontAwesomeIcon icon={faLink} />
+                    }
+                </div>
+            }
+            {
                 <SelectList currentBasemap={currentBasemap} icon={faCog} >
                     <div className='settings'>
                         <form onSubmit={handleSubmit(() => setParams({ ...Object.fromEntries(params), proxy }))}>
@@ -75,7 +94,15 @@ const App = () => {
                             <button>Connect to proxy</button>
                         </form>
                         <SimbriefForm currentBasemap={currentBasemap} />
-                        <GoToPlaneButton mapRef={mapRef} />
+                        {
+                            planeData &&
+                            <button onClick={() => {
+                                console.log(planeData)
+                                mapRef.current?.flyTo({
+                                    center: [planeData.longitude, planeData.latitude],
+                                })
+                            }}>Fly to plane</button>
+                        }
                     </div>
                 </SelectList>
             }
@@ -96,7 +123,7 @@ const App = () => {
                 <Map
                     initialViewState={initialViewState}
                     mapStyle={`mapbox://styles/mapbox/${currentBasemap}`}
-                    // terrain={{source: 'mapbox-dem'={} exaggeration: 1.5}}
+                    terrain={{source: 'mapbox-dem', exaggeration: 1.5}}
                     ref={mapRef}
                     projection={{ name: 'mercator' }}
                     // onLoad={() => setViewState(prev => prev ? ({ ...prev }) : prev)}
@@ -105,13 +132,13 @@ const App = () => {
                 >
                     <NavigationControl />
                     <FullscreenControl />
-                    {/* <Source
+                    <Source
                         id="mapbox-dem"
                         type="raster-dem"
                         url="mapbox://mapbox.mapbox-terrain-dem-v1"
                         tileSize={512}
                         maxzoom={14}
-                    /> */}
+                    />
                     <DeckGLOverlay layers={[planeLayer, featureLayer]} />
                     {enrouteLayers}
                     <Layer {...skyLayer} />
