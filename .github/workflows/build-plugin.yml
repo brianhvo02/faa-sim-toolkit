@@ -24,6 +24,6 @@ jobs:
     - name: Create release
       uses: ncipollo/release-action@v1
       with:
-        artifacts: dist/*
+        artifacts: plugins/dist/*
         artifactErrorsFailBuild: true
         tag: ${{ env.PACKAGE_VERSION }}
