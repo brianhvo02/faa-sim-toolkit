@@ -29,5 +29,5 @@ jobs:
     - name: Create release
       uses: ncipollo/release-action@v1
       with:
-        artifacts: build
+        artifacts: build/*
         tag: ${{ env.PACKAGE_VERSION }}
