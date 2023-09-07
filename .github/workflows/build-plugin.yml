@@ -25,7 +25,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: build
-        path: dist
+        path: plugin/dist
     - name: Create release
       uses: ncipollo/release-action@v1
       with:

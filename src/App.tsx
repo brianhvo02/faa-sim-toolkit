@@ -1,7 +1,7 @@
 import { FullscreenControl, Layer, Map, NavigationControl } from 'react-map-gl';
-import type { MapRef, ViewState } from 'react-map-gl';
+import type { MapRef } from 'react-map-gl';
 import { DeckGLOverlay, skyLayer } from './components/layers';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useIPLocation } from './components/data/location';
 import { SimbriefForm, useSimbrief } from './components/data/simbrief';
@@ -10,29 +10,18 @@ import { useEnrouteProducts } from './components/layers/enroute';
 import { useFeatureLayer } from './components/layers/geojson';
 import { usePlaneLayer } from './components/layers/plane';
 import { handleSubmit } from './components/util';
+import SelectList from './components/SelectList';
 import './App.scss';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import SelectList from './components/SelectList';
-
-const getCenterTile = ({ zoom, longitude, latitude }: ViewState) => {
-    const z = Math.floor(zoom);
-    const latRad = latitude / 180 * Math.PI;
-    const n = Math.pow(2, z);
-    const x = Math.floor(n * ((longitude + 180) / 360));
-    const y = Math.floor(n * (1 - (Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI)) / 2);
-    // const basemap = currentBasemap === 'satellite-v9'
-    //     ? 'light-v11'
-    //     : 'satellite-v9';
-    return `https://api.mapbox.com/styles/v1/mapbox/[BASEMAP]/tiles/${Math.floor(z)}/${x}/${y}?access_token=${process.env.REACT_APP_MAPBOX_ACCESS_TOKEN}`;
-};
 
 const App = () => {
     const [params, setParams] = useSearchParams();
     const [proxy, setProxy] = useState(params.get('proxy') ?? 'http://localhost:5000');
     const mapRef = useRef<MapRef>(null);
-    const [viewState, setViewState] = useState<ViewState>();
-    const [centerTile, setCenterTile] = useState<string>();
+    
     const [approach, setApproach] = useState('');
+
+    const { initialViewState, viewState, centerTile, onMapMove } = useIPLocation();
 
     const { briefing } = useSimbrief();
     const { 
@@ -55,24 +44,6 @@ const App = () => {
         approach, setApproach
     });
     const { planeLayer, GoToPlaneButton } = usePlaneLayer();
-
-    const location = useIPLocation();
-    const initialViewState: ViewState | undefined = useMemo(() => {
-        if (!location) return;
-        
-        const viewStateRaw = localStorage.getItem('viewState');
-        const viewState = viewStateRaw 
-            ? JSON.parse(viewStateRaw)
-            : {
-                latitude: location?.lat,
-                longitude: location?.lon,
-                zoom: 12
-            }
-        setViewState(viewState);
-        const url = getCenterTile(viewState);
-        setCenterTile(url);
-        return viewState;
-    }, [location]);
 
     return (
         <div className='map'>
@@ -128,13 +99,8 @@ const App = () => {
                     // terrain={{source: 'mapbox-dem'={} exaggeration: 1.5}}
                     ref={mapRef}
                     projection={{ name: 'mercator' }}
-                    onLoad={() => setViewState(prev => prev ? ({ ...prev }) : prev)}
-                    onMove={e => {
-                        const url = getCenterTile(e.viewState);
-                        setCenterTile(url);
-                        setViewState(e.viewState);
-                        localStorage.setItem('viewState', JSON.stringify(e.viewState));
-                    }}
+                    // onLoad={() => setViewState(prev => prev ? ({ ...prev }) : prev)}
+                    onMove={onMapMove}
                     logoPosition='bottom-right'
                 >
                     <NavigationControl />
