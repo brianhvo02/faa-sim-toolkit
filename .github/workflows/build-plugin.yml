@@ -1,0 +1,32 @@
+name: Build plugin
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'public/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        sparse-checkout: |
+          plugin
+        path: .
+    - name: Build plugin
+      run: |
+        npm install
+        npm run build
+        npm run package
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build
+        path: dist
+    - name: Create release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: dist

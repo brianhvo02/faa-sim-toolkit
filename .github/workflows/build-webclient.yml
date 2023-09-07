@@ -1,0 +1,49 @@
+name: Build web client
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'public/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build application
+      run: |
+        npm install
+        npm run build
+    - name: Archive artifact
+      run: |
+        tar \
+        --dereference --hard-dereference \
+        --directory "build" \
+        -cvf "$RUNNER_TEMP\artifact.tar" \
+        --exclude=.git \
+        --exclude=.github \
+        --force-local \
+        "."
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: build
+        path: ${{ runner.temp }}/artifact.tar
+        if-no-files-found: error
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2

@@ -4,9 +4,7 @@ import localtunnel from 'localtunnel';
 import { createServer } from 'node:http';
 
 const TUNNEL = process.env.TUNNEL;
-const HOST = process.env.NODE_ENV === 'production'
-    ? (process.env.HOST ?? '???')
-    : 'http://localhost:3000';
+const HOST = 'https://charts.brianhuyvo.com'
 const WS_PORT = process.env.WS_PORT ?? 5000;
 const XP_PORT = process.env.XP_PORT ?? 49002;
 
@@ -38,8 +36,6 @@ server.listen(WS_PORT, () => {
         console.log(`${HOST}?proxy=http://localhost:5000`)
     }
 });
-
-
 
 const socket = dgram.createSocket('udp4');
 

@@ -1,6 +1,20 @@
 {
-  "dependencies": {
-    "localtunnel": "^2.0.2",
-    "ws": "^8.13.0"
-  }
+    "name": "plugin",
+    "version": "0.1.0",
+    "main": "index.lib.js",
+    "bin": "index.lib.js",
+    "dependencies": {
+        "localtunnel": "^2.0.2",
+        "ws": "^8.13.0"
+    },
+    "devDependencies": {
+        "@babel/cli": "^7.22.15",
+        "@babel/core": "^7.22.15",
+        "@babel/preset-env": "^7.22.15"
+    },
+    "scripts": {
+        "build": "babel index.js --out-file index.lib.js --minified --presets=@babel/env",
+        "package": "pkg --out-path dist -t node18-linux-x64,node18-macos-x64,node18-win-x64 ."
+    },
+    "license": "ISC"
 }
