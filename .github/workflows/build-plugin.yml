@@ -20,7 +20,7 @@ jobs:
         npm install
         npm run build
         npm run package
-        export PACKAGE_VERSION=$(node -p "require('./package.json').version")
+        echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
