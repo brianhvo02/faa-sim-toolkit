@@ -20,7 +20,7 @@ jobs:
         npm install
         npm run build
         npm run package
-        export PACKAGE_VERSION=$(node -p "require('./plugin/package.json').version")
+        export PACKAGE_VERSION=$(node -p "require('./package.json').version")
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
