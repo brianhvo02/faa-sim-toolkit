@@ -1,7 +1,7 @@
 import { FullscreenControl, Layer, Map, NavigationControl, Source } from 'react-map-gl';
 import type { MapRef } from 'react-map-gl';
 import { DeckGLOverlay, skyLayer } from './components/layers';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useIPLocation } from './components/data/location';
 import { SimbriefForm, useSimbrief } from './components/data/simbrief';
@@ -13,8 +13,8 @@ import { handleSubmit } from './components/util';
 import SelectList from './components/SelectList';
 import './App.scss';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { useVatsimLayer } from './components/layers/vatsim';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useVatsim } from './components/data/vatsim';
 
 const App = () => {
     const [params, setParams] = useSearchParams();
@@ -36,17 +36,22 @@ const App = () => {
         viewState,
         mapRef
     });
+    const featureColor: [number, number, number] = useMemo(() => currentBasemap !== 'light-v11' && !currentLayer.length ? [252, 252, 253] : [41, 41, 41], [currentBasemap, currentLayer]);
     const { 
         featureLayer, allFeatures,
         showText, setShowText, 
         FeatureSelection, ApproachSelect
     } = useFeatureLayer({
         briefing,
-        currentBasemap, currentLayer,
+        featureColor,
         approach, setApproach
     });
     const { planeLayer, planeData } = usePlaneLayer();
-    const { vatsimLayer, skipToken, setSkipToken } = useVatsimLayer(showText);
+    const { 
+        vatsimTextLayer, vatsimPlaneLayer, 
+        skipToken, setSkipToken 
+    } = useVatsim(featureColor);
+    
 
     return (
         <div className='map'>
@@ -68,6 +73,7 @@ const App = () => {
             {
                 <div 
                     className='vatsim-connect'
+                    onClick={() => setSkipToken(prev => !prev)}
                     style={{
                         color: currentBasemap === 'light-v11'
                             ? '#292929'
@@ -76,8 +82,8 @@ const App = () => {
                 >
                     {
                         skipToken
-                            ? <FontAwesomeIcon icon={faTowerCell} />
-                            : <FontAwesomeIcon icon={faLink} />
+                            ? <FontAwesomeIcon icon={faLink} />
+                            : <FontAwesomeIcon icon={faTowerCell} />
                     }
                 </div>
             }
@@ -139,7 +145,12 @@ const App = () => {
                         tileSize={512}
                         maxzoom={14}
                     />
-                    <DeckGLOverlay layers={[planeLayer, featureLayer]} />
+                    <DeckGLOverlay layers={[
+                        planeLayer, 
+                        featureLayer, 
+                        vatsimTextLayer, 
+                        vatsimPlaneLayer
+                    ]} />
                     {enrouteLayers}
                     <Layer {...skyLayer} />
                 </Map>

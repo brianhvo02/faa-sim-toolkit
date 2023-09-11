@@ -43,8 +43,7 @@ const findFeatures = (results: Set<MapFeature>, allFeatures: MapFeature[], waypo
 }
 
 interface UseFeatureLayerProps {
-    currentBasemap: string;
-    currentLayer: string;
+    featureColor: [number, number, number];
     approach: string;
     setApproach: Dispatch<SetStateAction<string>>;
     briefing?: Briefing;
@@ -52,10 +51,9 @@ interface UseFeatureLayerProps {
 
 export const useFeatureLayer = ({ 
     briefing,
-    currentBasemap, currentLayer, 
+    featureColor,
     approach, setApproach
 }: UseFeatureLayerProps) => {
-    const featureColor: [number, number, number] = useMemo(() => currentBasemap !== 'light-v11' && !currentLayer.length ? [252, 252, 253] : [41, 41, 41], [currentBasemap, currentLayer]);
     const [selectedFeatures, setSelectedFeatures] = useState<Record<string, boolean>>(featuresMap);
     const { features, allFeatures } = useMapData(selectedFeatures);
 
@@ -158,7 +156,7 @@ export const useFeatureLayer = ({
     }, [briefing, allFeatures, approach]);
     
     const featureLayer = new GeoJsonLayer({
-        id: 'geojson-layer',
+        id: 'feature-layer',
         data: routeFeatures ?? features,
         pickable: true,
         wrapLongitude: true,

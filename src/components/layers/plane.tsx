@@ -1,9 +1,7 @@
-import { type RefObject, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScenegraphLayer } from '@deck.gl/mesh-layers/typed';
 import { useSearchParams } from 'react-router-dom';
-import type { MapRef } from 'react-map-gl';
 import { isPositionData, type PositionData, type SimPayload } from '../data/sim';
-import ws from 'ws';
 
 export const usePlaneLayer = () => {
     const [params] = useSearchParams();
@@ -25,14 +23,18 @@ export const usePlaneLayer = () => {
     }, [params]);
 
     const planeLayer = new ScenegraphLayer({
-        id: 'scenegraph-layer',
+        id: 'plane-layer',
         data: planeData && [planeData],
-        scenegraph: './plane.glb',
-        getPosition: (d: PositionData) => [d.longitude ?? 0, d.latitude ?? 0, (d.altitudeMSL ?? 0)],
-        getOrientation: (d: PositionData) => [-d.roll, 180 - d.yaw , 90 - d.pitch],
-        sizeScale: 100,
+        scenegraph: './airplane.glb',
+        getPosition: (pos: PositionData) => [pos.longitude, pos.latitude, pos.altitudeMSL],
+        getOrientation: (pos: PositionData) => [pos.roll, -pos.yaw, 90 + pos.pitch],
+        sizeMinPixels: 1,
+        sizeMaxPixels: 2,
         _lighting: 'pbr',
-        _animations: { '*': { speed: 1 } }
+        _animations: { '*': { speed: 1 } },
+        transitions: {
+            getPosition: 3600 * 0.9
+        }
     });
 
     return { planeLayer, planeData };

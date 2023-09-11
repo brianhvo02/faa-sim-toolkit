@@ -8,10 +8,15 @@
 
     .vatsim-connect {
         position: absolute;
+        z-index: 5;
+        top: 10vh;
+        margin: 1rem;
         
         svg {
             width: 1.5rem;
             height: 1.5rem;
+
+            cursor: pointer;
         }
     }
 
@@ -73,7 +78,7 @@
     }
 
     .enroute-layer {
-        top: 10vh;
+        top: 15vh;
         left: 0;
     }
 

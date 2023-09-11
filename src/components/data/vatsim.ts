@@ -1,19 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { FeatureCollection, Point } from 'geojson';
+import { TextLayer } from '@deck.gl/layers/typed';
+import { ScenegraphLayer } from '@deck.gl/mesh-layers/typed';
+import type { Feature, FeatureCollection, Point } from 'geojson';
 
-// interface Transceiver {
-//     id: number;
-//     frequency: number;
-//     latDeg: number;
-//     lonDeg: number;
-//     heightMslM: number;
-//     heightAglM: number;
-// }
+interface Transceiver {
+    id: number;
+    frequency: number;
+    latDeg: number;
+    lonDeg: number;
+    heightMslM: number;
+    heightAglM: number;
+}
 
-// interface TransceiverData {
-//     callsign: string;
-//     transceivers: Transceiver[];
-// }
+interface TransceiverData {
+    callsign: string;
+    transceivers: Transceiver[];
+}
 
 interface FlightPlan {
     flight_rules: string;
@@ -37,20 +39,20 @@ interface FlightPlan {
 export interface Pilot {
     cid: number;
     name: string;
-    callsign?: string;
-    server?: string;
-    pilot_rating?: number;
-    military_rating?: number;
-    latitude?: number;
-    longitude?: number;
-    altitude?: number;
-    groundspeed?: number;
-    transponder?: string;
-    heading?: number;
-    qnh_i_hg?: number;
-    qnh_mb?: number;
-    flight_plan: FlightPlan;
-    logon_time?: string;
+    callsign: string;
+    server: string;
+    pilot_rating: number;
+    military_rating: number;
+    latitude: number;
+    longitude: number;
+    altitude: number;
+    groundspeed: number;
+    transponder: string;
+    heading: number;
+    qnh_i_hg: number;
+    qnh_mb: number;
+    flight_plan?: FlightPlan;
+    logon_time: string;
     last_updated: string;
 }
 
@@ -63,51 +65,46 @@ interface GeneralInfo {
     unique_users: number;
 }
 
+interface Controller {
+    cid: number;
+    name: string;
+    callsign: string;
+    frequency: string;
+    facility: number;
+    rating: number;
+    server: string;
+    visual_range: number;
+    text_atis: string[];
+    last_updated: string;
+    logon_time: string;
+}
+
 interface Rating {
     id: number;
     short: string;
     long: string;
 }
 
-interface VatsimData {
+
+export interface VatsimData {
     general: GeneralInfo;
     pilots: Pilot[];
+    controllers: Controller[];
     facilities: Rating[];
     ratings: Rating[];
     pilot_ratings: Rating[];
     military_ratings: Rating[];
 }
 
-export type VatsimFeatureCollection = FeatureCollection<Point, Pilot>;
+type PlaneData = Partial<Pilot & TransceiverData> & { callsign: string; };
 
-export const useVatsim = (interval: number = 2000) => {
+export const useVatsim = (featureColor: [number, number, number], vatsimInterval = 10000, transceiverInterval = 2000) => {
     const [skipToken, setSkipToken] = useState(true);
-    // const [transceiverData, setTransceiverData] = useState<TransceiverData[]>([]);
-    const [vatsimData, setVatsimData] = useState<VatsimData>();
-    const vatsimFeatures = useMemo(() => 
-        vatsimData?.pilots.reduce((collection: FeatureCollection<Point, Pilot>, pilot) => {
-            if (!pilot.longitude || !pilot.latitude || !pilot.altitude)
-                return collection;
-
-            collection.features.push({
-                type: 'Feature',
-                geometry: {
-                    type: 'Point',
-                    coordinates: [pilot.longitude, pilot.latitude, pilot.altitude]
-                },
-                properties: pilot
-            });
-
-            return collection;
-        }, {
-            type: 'FeatureCollection',
-            features: []
-        }), [vatsimData]);
+    const [planeData, setPlaneData] = useState<Record<string, PlaneData>>({});
 
     useEffect(() => {
         if (!skipToken) {
-            // setTransceiverData([]);
-            setVatsimData(undefined);
+            setPlaneData({});
             return;
         };
 
@@ -115,24 +112,94 @@ export const useVatsim = (interval: number = 2000) => {
 
         const options = { signal: controller.signal };
 
-        const timer = setInterval(() => {
+        const vatsimTimer = setInterval(() => {
             fetch('https://data.vatsim.net/v3/vatsim-data.json', options)
-            .then(res => res.json())
-            .then(setVatsimData)
-            .catch(console.error);
+                .then(res => res.json())
+                .then((data: VatsimData) => {
+                    setPlaneData(prev => {
+                        data.pilots.forEach(pilot => {
+                            prev[pilot.callsign] = {
+                                ...prev[pilot.callsign],
+                                ...pilot
+                            };
+                        });
+            
+                        return { ...prev };
+                    });
+                })
+                .catch(console.error);
+        }, vatsimInterval);
 
-            // fetch('https://data.vatsim.net/v3/transceivers-data.json', options)
-            //     .then(res => res.json())
-            //     .then(setTransceiverData)
-            //     .catch(console.error);
-        }, interval);
+        const transceiverTimer = setInterval(() => {
+            fetch('https://data.vatsim.net/v3/transceivers-data.json', options)
+                .then(res => res.json())
+                .then((data: TransceiverData[]) => {
+                    setPlaneData(prev => {
+                        data.forEach(({ callsign, transceivers }) => {
+                            prev[callsign] = {
+                                ...prev[callsign],
+                                transceivers
+                            };
+                        });
+            
+                        return { ...prev };
+                    });
+                })
+                .catch(console.error);
+        }, transceiverInterval);
         
-
         return () => {
             controller.abort();
-            clearInterval(timer);
+            clearInterval(vatsimTimer);
+            clearInterval(transceiverTimer);
         };
-    }, [skipToken, interval]);
+    }, [skipToken, vatsimInterval, transceiverInterval]);
 
-    return { vatsimFeatures, skipToken, setSkipToken };
+    const getPosition = (plane: PlaneData): [number, number, number] => {
+        const { latitude, longitude, altitude } = plane;
+        if (plane.transceivers && plane.transceivers.length) {
+            const { length } = plane.transceivers;
+            return plane.transceivers.reduce((coords, transceiver) => {
+                coords[0] += transceiver.lonDeg;
+                coords[1] += transceiver.latDeg;
+                coords[2] += transceiver.heightMslM;
+
+                return coords;
+            }, [0, 0, 0])
+            .map(component => component / length) as [number, number, number];
+        } else if (latitude && longitude && altitude) {
+            return [latitude, longitude, altitude * 0.3048];
+        } else {
+            return [0, 0, 0];
+        }
+    }
+
+    const data = useMemo(() => 
+        Object.values(planeData).filter(data => data.callsign), [planeData])
+
+    const vatsimTextLayer = new TextLayer({
+        id: 'vatsim-text-layer',
+        data,
+        getPosition,
+        getText: (plane: PlaneData) => plane.callsign,
+        getColor: featureColor,
+        sizeMaxPixels: 16,
+        sizeMinPixels: 8,
+        getPixelOffset: [0, 16],
+        fontWeight: 700
+    });
+
+    const vatsimPlaneLayer = new ScenegraphLayer({
+        id: 'vatsim-plane-layer',
+        data,
+        scenegraph: './airplane.glb',
+        getPosition,
+        getOrientation: (plane: PlaneData) => [0, plane.heading ?? 0, 90],
+        sizeMinPixels: 0.5,
+        sizeMaxPixels: 1,
+        _lighting: 'pbr',
+        onClick: d => console.log(d)
+    });
+
+    return { vatsimTextLayer, vatsimPlaneLayer, skipToken, setSkipToken };
 }
